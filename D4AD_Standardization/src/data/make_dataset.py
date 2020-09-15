@@ -184,7 +184,9 @@ def structured_parenthesis_related(from_df, the_field):
         "AAS Degree",
         "AAS -",
         "A.S. Degree",
-        "A.A.S. Degree",        
+        "AA Degree",
+        "A.A. Degree",
+        "A.A.S. Degree",
         "AS Degree",     
         "Degree",
         "degree",
@@ -335,14 +337,17 @@ def job_search_duration(from_df):
             flags=re.I|re.VERBOSE
         ).replace('-', '')\
         .replace('week', 'weeks')\
-        .dropna()\
-        .droplevel('match')  # drop uneeded multi-index 
+        .dropna()
+    
+    if not job_search_length_mention.empty:
+        job_search_length_mention =\
+            job_search_length_mention.droplevel('match')  # drop uneeded multi-index 
 
-    to_df.loc[job_search_length_mention.index,
-              field] =\
-                job_search_length_mention['numeric'] +\
-                job_search_length_mention['modifer'] +\
-                job_search_length_mention['base_duration']
+        to_df.loc[job_search_length_mention.index,
+                field] =\
+                    job_search_length_mention['numeric'] +\
+                    job_search_length_mention['modifer'] +\
+                    job_search_length_mention['base_duration']
     
     return to_df
 
@@ -397,7 +402,7 @@ def main(remap_field_names, output_filepath, from_filepath, from_table):
     content_is='standardized_etpl'
     logger.info(f"Done. Writing {content_is} to {output_filepath}. Remap fields names is {remap_field_names}")
 
-    write_out(out_df, output_filepath, content_is='standardized_etpl', remap_field_names=remap_field_names, mapper=internal_fields_to_labor)
+    write_out(out_df, output_filepath, content_is='standardized_etpl', remap_field_names=remap_field_names, remapper=internal_fields_to_labor)
 
 
 if __name__ == '__main__':
