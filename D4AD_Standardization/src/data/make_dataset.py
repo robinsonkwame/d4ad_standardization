@@ -19,11 +19,23 @@ from utils.etpl_field_names import (
     sql_etpl_field_names,
     sql_excel_field_map,
     labor_fields_to_internal,
+    internal_fields_to_labor,
     labor_etpl_field_names
 )
 
 
 logger = logging.getLogger(__name__)
+
+# For better or worse, from different data soruces,
+# I called field names all kinds of things. This dictionary
+# returns the canonical name so that we don't have to hard code
+# things everywhere. The source name is assumed to be unique.
+canonical_field_name =\
+    {
+        'NAME': 'name',
+        'NAME_1': 'name_1',
+        'mentioned_job_search_duration': 'mentioned_job_search_duration'
+    }
 
 get_standardized =\
     {
@@ -34,7 +46,7 @@ get_standardized =\
         "is_wioa": "mentions_wioa"
     }
 
-def input_source(from_filepath=None, from_table=None, remap_field_names=False, source="labor"):
+def input_source(from_filepath=None, from_table=None, remap_field_names=False, source="labor", debug_sample=None):
     df = None
     if from_filepath:
         file_extension = from_filepath.rsplit('.',1)[1]
@@ -43,6 +55,10 @@ def input_source(from_filepath=None, from_table=None, remap_field_names=False, s
             df = pd.read_excel(from_filepath)
         if file_extension in ('csv'):
             df = pd.read_csv(from_filepath)
+
+        if debug_sample:
+            # Cheap way to run over a very small subset, inspect output
+            df = df.sample(debug_sample)
 
     if remap_field_names:
         the_map = None
@@ -70,7 +86,7 @@ def input_source(from_filepath=None, from_table=None, remap_field_names=False, s
 
 def course_name(from_df):
     to_df = from_df
-    field = 'NAME'
+    field = canonical_field_name['NAME']
 
     # First we remove extranous content after the hyphen
     # e.g. "Program Management[ - Clemsen - A.S. Title IV]"
@@ -105,7 +121,7 @@ def course_name(from_df):
 
 def provider_name(from_df):
     to_df = from_df
-    field = 'NAME_1'
+    field = canonical_field_name['NAME_1']
     standardized_field = get_standardized[field]
 
     # Silver Version of Provider Names
@@ -196,9 +212,9 @@ def handle_abbreviations(from_df):
     start = datetime.datetime.now()
     logger.info(f"\t[abbreviation] starting at {start}")
 
-    the_fields = [get_standardized['NAME_1'],
-                  'DESCRIPTION', 
-                  'FEATURESDESCRIPTION']
+    the_fields = [get_standardized['name_1'],
+                  'description', 
+                  'featuresdescription']
     for a_field in the_fields:
         # get the standardized field if it exists, else returns same field
         # so we can self-modify it
@@ -225,7 +241,7 @@ def mentions_wioa(from_df):
     wioa_indices =\
         get_name_name1_descriptions_indices(wioa_like, to_df)
 
-    field = get_standardized['IS_WIOA']
+    field = get_standardized['is_wioa']
     to_df[field] = False
     to_df.loc[wioa_indices, field] = True
 
@@ -244,8 +260,8 @@ def mentions_certificate(from_df):
     cert_indices =\
         get_name_name1_descriptions_indices(cert_like, to_df)
 
-    to_df['Mentioned_Certificate'] = False
-    to_df.loc[cert_indices, 'Mentioned_Certificate'] = True
+    to_df['mentioned_certificate'] = False
+    to_df.loc[cert_indices, 'mentioned_certificate'] = True
 
     return to_df
 
@@ -264,18 +280,18 @@ def mentions_associates(from_df):
     assoc_indices =\
         get_name_name1_descriptions_indices(as_like, to_df)
 
-    to_df['Mentioned_Associates'] = False
-    to_df.loc[assoc_indices, 'Mentioned_Associates'] = True
+    to_df['mentioned_associates'] = False
+    to_df.loc[assoc_indices, 'mentioned_associates'] = True
 
     return to_df
 
 def job_search_duration(from_df):
     to_df = from_df
     
-    field = get_standardized['IS_WIOA']
+    field = get_standardized['is_wioa']
     wioa_indices = to_df[field] == True
-    to_df['DEFAULT_JOB_SEARCH_DURATION'] = "0"
-    to_df.loc[wioa_indices, 'DEFAULT_JOB_SEARCH_DURATION'] = "6 months"
+    to_df['default_job_search_duration'] = "0"
+    to_df.loc[wioa_indices, 'default_job_search_duration'] = "6 months"
 
     # We first extract the context in which mentions of
     # job searches occur (e.g. job search, assistance with employment search, etc.)
@@ -300,11 +316,11 @@ def job_search_duration(from_df):
 
     # todo: make this logic have fewer hardcoded things
     job_search_length_mention =\
-        to_df.loc[wioa_indices, 'DESCRIPTION']\
+        to_df.loc[wioa_indices, 'description']\
             .str\
             .extractall(pat=training_context_regex, flags=re.I|re.VERBOSE)[0]
 
-    field = 'MENTIONED_JOB_SEARCH_DURATION'
+    field = canonical_field_name['mentioned_job_search_duration']
     to_df[field] = None
     job_search_length_mention =\
         job_search_length_mention.str.extract(
@@ -344,28 +360,29 @@ def main(remap_field_names, output_filepath, from_filepath, from_table):
     out_df =\
         course_name(from_df=from_df)
     logger.info('... standardizing provider names')
-    out_df =\
-        provider_name(from_df=out_df)
-    logger.info('... standardizing abbreviations throughout ... will take a while ...')        
-    out_df =\
-       handle_abbreviations(from_df=out_df)
-    logger.info('... identifying WIOA funded courses')
-    out_df =\
-        mentions_wioa(from_df=out_df)
-    logger.info('... identifying certficate courses')
-    out_df =\
-        mentions_certificate(from_df=out_df)
-    logger.info('... identifying associates')
-    out_df =\
-        mentions_associates(from_df=out_df)
-    logger.info('... job search durations')
-    out_df =\
-        job_search_duration(from_df=out_df)
+    if None:
+        out_df =\
+            provider_name(from_df=out_df)
+        logger.info('... standardizing abbreviations throughout ... will take a while ...')        
+        out_df =\
+        handle_abbreviations(from_df=out_df)
+        logger.info('... identifying WIOA funded courses')
+        out_df =\
+            mentions_wioa(from_df=out_df)
+        logger.info('... identifying certficate courses')
+        out_df =\
+            mentions_certificate(from_df=out_df)
+        logger.info('... identifying associates')
+        out_df =\
+            mentions_associates(from_df=out_df)
+        logger.info('... job search durations')
+        out_df =\
+            job_search_duration(from_df=out_df)
 
     content_is='standardized_etpl'
     logger.info(f"Done. Writing {content_is} to {output_filepath}. Remap fields names is {remap_field_names}")
 
-    write_out(out_df, output_filepath, content_is='standardized_etpl', remap_field_names=remap_field_names)
+    write_out(out_df, output_filepath, content_is='standardized_etpl', remap_field_names=remap_field_names, mapper=internal_fields_to_labor)
 
 
 if __name__ == '__main__':
