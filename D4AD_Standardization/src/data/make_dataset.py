@@ -40,7 +40,7 @@ canonical_field_name =\
 get_standardized =\
     {
         'name': 'standardized_name',
-        'name_1': 'standardized_name1',
+        'name_1': 'standardized_name_1',
         'description': 'standardized_description',
         'featuresdescription': 'standardized_featuresdescription',
         "is_wioa": "mentions_wioa"
@@ -84,21 +84,20 @@ def input_source(from_filepath=None, from_table=None, remap_field_names=False, s
     return df
 
 
-def course_name(from_df):
+def parenthesis_related(from_df, the_field):
     to_df = from_df
-    field = canonical_field_name['NAME']
-    standardized_field = get_standardized[field]
+    # field = canonical_field_name[the_field]
+    # standardized_field = get_standardized[field]
+    field = canonical_field_name.get(the_field, the_field)
+    standardized_field = get_standardized.get(field, field)
 
-    print(f"using {field}, for {get_standardized[field]}")
     # First we remove extranous content after the hyphen
     # e.g. "Program Management[ - Clemsen - A.S. Title IV]"
-    to_df[get_standardized[field]] =\
+    to_df[standardized_field] =\
         split_on(to_df[field],
                  " - ",
                  n=1,
                  get_nth_result=1)
-
-    print(to_df[standardized_field])
 
     # then we handle content immediately prior to a hyphen
     # e.g. "Program Management[- Clemsen - A.S. Title IV]"
@@ -123,10 +122,10 @@ def course_name(from_df):
     return to_df
 
 
-def provider_name(from_df):
+def structured_parenthesis_related(from_df, the_field):
     to_df = from_df
-    field = canonical_field_name['NAME_1']
-    standardized_field = get_standardized[field]
+    field = canonical_field_name.get(the_field, the_field)
+    standardized_field = get_standardized.get(field, field)
 
     # Silver Version of Provider Names
     #
@@ -137,7 +136,8 @@ def provider_name(from_df):
     # Note that we access the regex <the_name> group from the result
 
     # If provider field starts with a (...
-    to_df[standardized_field] = ""
+    if not standardized_field in to_df:
+        to_df[standardized_field] = ""
     open_parenthesis_index = to_df[field].str[0] == '('
     open_parenthesis_regex = '''
                     (?P<paren>\(.*\)) # get the first parathesis
@@ -149,6 +149,8 @@ def provider_name(from_df):
             open_parenthesis_regex).the_name
 
     # If provider field ends with a )...
+    # note that we operate on `standardized_field` from this
+    # point forward
     close_parenthesis_index = to_df[field].str[-1] == ')'
     closing_parenthesis_regex = '''
                     (?P<the_name>.*)  # get the actual name
@@ -156,17 +158,17 @@ def provider_name(from_df):
                     '''
     to_df.loc[close_parenthesis_index, standardized_field] =\
         extract_values(
-            to_df.loc[close_parenthesis_index, field],
+            to_df.loc[close_parenthesis_index, standardized_field],
             closing_parenthesis_regex).the_name
 
     # For those fields remaining, if a ( or ) exists ....
     internal_parenthesis_index =\
-        to_df[field].str.contains('\(|\)', regex=True) &\
+        to_df[standardized_field].str.contains('\(|\)', regex=True) &\
             ~(close_parenthesis_index|open_parenthesis_index)
 
     to_df.loc[internal_parenthesis_index, standardized_field] =\
         extract_values(
-            to_df.loc[internal_parenthesis_index, field],
+            to_df.loc[internal_parenthesis_index, standardized_field],
             closing_parenthesis_regex).the_name
 
     # Finally, copy everything else that has no parentheses
@@ -182,6 +184,7 @@ def provider_name(from_df):
         "AAS Degree",
         "AAS -",
         "A.S. Degree",
+        "A.A.S. Degree",        
         "AS Degree",     
         "Degree",
         "degree",
@@ -359,29 +362,37 @@ def main(remap_field_names, output_filepath, from_filepath, from_table):
 
     logger.info(f"... reading in input dataset, remap field names is set to {remap_field_names}")
     from_df = input_source(from_filepath, from_table, remap_field_names=remap_field_names)
-    logger.info('... standardizing course names')
-    
+    logger.info('... standardizing course names')    
     out_df =\
-        course_name(from_df=from_df)
+        parenthesis_related(from_df=from_df, the_field='NAME')
+    out_df =\
+        structured_parenthesis_related(from_df=out_df, the_field='standardized_name')
+    
     logger.info('... standardizing provider names')
-    if None:
-        out_df =\
-            provider_name(from_df=out_df)
-        logger.info('... standardizing abbreviations throughout ... will take a while ...')        
-        out_df =\
-        handle_abbreviations(from_df=out_df)
-        logger.info('... identifying WIOA funded courses')
-        out_df =\
-            mentions_wioa(from_df=out_df)
-        logger.info('... identifying certficate courses')
-        out_df =\
-            mentions_certificate(from_df=out_df)
-        logger.info('... identifying associates')
-        out_df =\
-            mentions_associates(from_df=out_df)
-        logger.info('... job search durations')
-        out_df =\
-            job_search_duration(from_df=out_df)
+    out_df =\
+        parenthesis_related(from_df=out_df, the_field='NAME_1')
+    out_df =\
+        structured_parenthesis_related(from_df=out_df, the_field='standardized_name_1')
+    
+    logger.info('... standardizing abbreviations throughout ... will take a while ...')        
+    out_df =\
+    handle_abbreviations(from_df=out_df)
+    
+    logger.info('... identifying WIOA funded courses')
+    out_df =\
+        mentions_wioa(from_df=out_df)
+    
+    logger.info('... identifying certficate courses')
+    out_df =\
+        mentions_certificate(from_df=out_df)
+    
+    logger.info('... identifying associates')
+    out_df =\
+        mentions_associates(from_df=out_df)
+    
+    logger.info('... job search durations')
+    out_df =\
+        job_search_duration(from_df=out_df)
 
     content_is='standardized_etpl'
     logger.info(f"Done. Writing {content_is} to {output_filepath}. Remap fields names is {remap_field_names}")
