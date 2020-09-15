@@ -87,14 +87,18 @@ def input_source(from_filepath=None, from_table=None, remap_field_names=False, s
 def course_name(from_df):
     to_df = from_df
     field = canonical_field_name['NAME']
+    standardized_field = get_standardized[field]
 
+    print(f"using {field}, for {get_standardized[field]}")
     # First we remove extranous content after the hyphen
     # e.g. "Program Management[ - Clemsen - A.S. Title IV]"
     to_df[get_standardized[field]] =\
         split_on(to_df[field],
                  " - ",
                  n=1,
-                 get_first_n_results=1)
+                 get_nth_result=1)
+
+    print(to_df[standardized_field])
 
     # then we handle content immediately prior to a hyphen
     # e.g. "Program Management[- Clemsen - A.S. Title IV]"
@@ -105,16 +109,16 @@ def course_name(from_df):
                             .)          # and continue to match any character
                     *)                  # ... as many times as we can
                     '''
-    to_df[get_standardized[field]] =\
-        extract_values(to_df[field], regex_pattern)
+    to_df[standardized_field] =\
+        extract_values(to_df[standardized_field], regex_pattern)
 
     # ... finally we handle odd fixed patterns that are common
     # e.g. "Program Management[- Clemsen (orange)"
-    to_df[get_standardized[field]] =\
-        replace_values(to_df[field], "\(orange\)")
+    to_df[standardized_field] =\
+        replace_values(to_df[standardized_field], "\(orange\)")
 
-    to_df[get_standardized[field]] =\
-        replace_values(to_df[field], "closed")
+    to_df[standardized_field] =\
+        replace_values(to_df[standardized_field], "closed")
 
     return to_df
 
