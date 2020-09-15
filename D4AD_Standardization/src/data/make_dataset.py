@@ -17,7 +17,9 @@ from utils.abbreviation import multiple_mapper
 from utils.field_indicator import get_name_name1_descriptions_indices
 from utils.etpl_field_names import (
     sql_etpl_field_names,
-    sql_excel_field_map
+    sql_excel_field_map,
+    labor_fields_to_internal,
+    labor_etpl_field_names
 )
 
 
@@ -25,32 +27,42 @@ logger = logging.getLogger(__name__)
 
 get_standardized =\
     {
-        'NAME': 'STANDARDIZED_NAME',
-        'NAME_1': 'STANDARDIZED_NAME1',
-        'DESCRIPTION': 'STANDARDIZED_DESCRIPTION',
-        'FEATURESDESCRIPTION': 'STANDARDIZED_FEATURESDESCRIPTION',
-        "IS_WIOA": "MENTIONS_WIOA"
+        'name': 'standardized_name',
+        'name_1': 'standardized_name1',
+        'description': 'standardized_description',
+        'featuresdescription': 'standardized_featuresdescription',
+        "is_wioa": "mentions_wioa"
     }
 
-def input_source(from_filepath=None, from_table=None, remap_field_names=False):
+def input_source(from_filepath=None, from_table=None, remap_field_names=False, source="labor"):
     df = None
     if from_filepath:
         file_extension = from_filepath.rsplit('.',1)[1]
         
         if file_extension in ('xls', 'xlsx'):
             df = pd.read_excel(from_filepath)
+        if file_extension in ('csv'):
+            df = pd.read_csv(from_filepath)
 
     if remap_field_names:
-        sql_fields_in_common = sql_etpl_field_names.intersection(
-            set(df.columns)
-            )
-        if len(sql_fields_in_common) > 0:
-            # we remap to excel fields since this work was
-            # predicated on the inital excel dump provided to me
-            # at start of contract
+        the_map = None
+        if source=="sql":
+            fields_in_common = sql_etpl_field_names.intersection(
+                set(df.columns)
+                )
+            the_map = sql_excel_field_map
+
+        if source == "labor":
+            fields_in_common = labor_etpl_field_names.intersection(
+                set(df.columns)
+                )
+            the_map = labor_fields_to_internal
+
+
+        if len(fields_in_common) > 0:
             df =\
                 df.rename(
-                    columns=sql_excel_field_map
+                    columns=the_map
                 )
 
     return df
@@ -315,8 +327,6 @@ def job_search_duration(from_df):
 @click.command()
 @click.argument('remap_field_names', default=True)
 @click.argument('output_filepath', type=click.Path(), default="./D4AD_Standardization/data/interim/")
-#@click.argument('from_filepath', type=click.Path(exists=True), default="./D4AD_Standardization/data/raw/sql_header_etpl_small_June3.xls")
-#@click.argument('from_filepath', type=click.Path(exists=True), default="./D4AD_Standardization/data/raw/etpl_all_programsJune3.xls")
 @click.argument('from_filepath', type=click.Path(exists=True), default="./D4AD_Standardization/data/raw/sql_header_etpl_all_programsJune3.xls")
 @click.argument('from_table', type=str, default='')
 def main(remap_field_names, output_filepath, from_filepath, from_table):

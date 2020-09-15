@@ -2,7 +2,11 @@ import pandas as pd
 import re
 import regex
 import logging
-from .etpl_field_names import excel_to_sql_name_map, sql_type_map
+from .etpl_field_names import (
+    excel_to_sql_name_map,
+    sql_type_map,
+    internal_fields_to_labor
+)
 
 ROOT_PATH = "/hdd/work/d4ad_standardization/"
 
@@ -40,7 +44,7 @@ def write_out(the_df, write_path, content_is, root_path=ROOT_PATH,
     if remap_field_names:
         the_df =\
             the_df.rename(
-                columns=excel_to_sql_name_map
+                columns=internal_fields_to_labor
             )
         for field_name, sql_type in sql_type_map.items():
             if sql_type == "boolean":
