@@ -55,6 +55,10 @@ def input_source(from_filepath=None, from_table=None, remap_field_names=False, s
             df = pd.read_excel(from_filepath)
         if file_extension in ('csv'):
             df = pd.read_csv(from_filepath)
+        
+        # We ignore case by lowercasing all column names (e.g. labor gives
+        # different casing than sql, etc)
+        df.columns = map(str.lower, df.columns)
 
         if debug_sample:
             # Cheap way to run over a very small subset, inspect output
