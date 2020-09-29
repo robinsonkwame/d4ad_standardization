@@ -52,7 +52,7 @@ canonical_field_name =\
         'mention_hybrid':'mention_hybrid',
         'mention_inperson': 'mention_inperson',
         'mention_remote': 'mention_remote',
-        'statecomment': 'statecomment',
+        'statecomments': 'statecomments',
         'commented_suspended_program_status': 'commented_suspended_program_status'
     }
 
@@ -477,10 +477,10 @@ def instruction_type(from_df):
 
 def provider_course_status(from_df):
     to_df = from_df
-    field = canonical_field_name['statecomment']
+    field = canonical_field_name['statecomments']
 
     most_recent_entry =\
-        from_df[field].dropna()\
+        to_df[field].dropna()\
                       .str\
                       .split('\n', 1, expand=True)[0]
 
