@@ -519,7 +519,6 @@ def provider_course_status(from_df):
     return to_df
 
 
-
 @click.command()
 @click.argument('remap_field_names', default=True)
 @click.argument('output_filepath', type=click.Path(), default="./D4AD_Standardization/data/interim/")
@@ -570,9 +569,13 @@ def main(remap_field_names, output_filepath, from_filepath, from_table):
     out_df =\
         google_direction_url(from_df=out_df)
 
-    logger.info('... identifying mentions of instruction type')
+    logger.info('... identifying mentions of instruction type (remote, in-person, hybrid)')
     out_df =\
         instruction_type(from_df=out_df)
+
+    logger.info('... identifying program statuses (from statecomments)')
+    out_df =\
+        provider_course_status(from_df=out_df)
 
     content_is='standardized_etpl'
     logger.info(f"Done. Writing {content_is} to {output_filepath}. Remap fields names is {remap_field_names}")
