@@ -16,7 +16,10 @@ from utils.dataframe_manipulation import (
     write_out
 )
 from utils.abbreviation import multiple_mapper
-from utils.field_indicator import get_name_name1_descriptions_indices
+from utils.field_indicator import (
+    get_name_name1_descriptions_indices,
+    indices_from_regex_search
+)
 from utils.etpl_field_names import (
     sql_etpl_field_names,
     sql_excel_field_map,
@@ -48,7 +51,9 @@ canonical_field_name =\
         'zip': 'zip',
         'mention_hybrid':'mention_hybrid',
         'mention_inperson': 'mention_inperson',
-        'mention_remote': 'mention_remote'
+        'mention_remote': 'mention_remote',
+        'statecomment': 'statecomment',
+        'commented_suspended_program_status': 'commented_suspended_program_status'
     }
 
 get_standardized =\
@@ -468,6 +473,51 @@ def instruction_type(from_df):
     to_df.loc[remote_indices, field] = True
 
     return to_df
+
+
+def provider_course_status(from_df):
+    to_df = from_df
+    field = canonical_field_name['statecomment']
+
+    most_recent_entry =\
+        from_df[field].dropna()\
+                      .str\
+                      .split('\n', 1, expand=True)[0]
+
+    #  some entries, unfortunately, are seperated by commas instead
+    has_comma = most_recent_entry.str.contains(',')
+    most_recent_entry[has_comma] =\
+        most_recent_entry[has_comma].str.split(',', 1, expand=True)[0]
+        
+    suspend_like =\
+        regex.compile(
+            '''
+            \W(to suspended)
+            |\W(not seeking)
+            |\W(must submit)
+            |\W(suspended per)
+            |\W(expir)
+            |\W(not.*approved)
+            ''',
+            flags=regex.I|regex.VERBOSE)
+    """
+    negate_suspend_like =\
+        regex.compile(
+            '''
+            \b(reinstated.*expir)       # rare but does occur
+            ''',
+            flags=regex.I|regex.VERBOSE)
+    """
+
+    suspend_indices =\
+        indices_from_regex_search(most_recent_entry, suspend_like)
+
+    status_field = canonical_field_name['commented_suspended_program_status']
+    to_df[status_field] = False
+    to_df.loc[suspend_indices,  status_field] = True
+
+    return to_df
+
 
 
 @click.command()
