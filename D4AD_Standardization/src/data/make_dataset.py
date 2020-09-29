@@ -27,6 +27,7 @@ from utils.etpl_field_names import (
     internal_fields_to_labor,
     labor_etpl_field_names
 )
+from utils.nongov import nongov
 
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,9 @@ canonical_field_name =\
         'mention_inperson': 'mention_inperson',
         'mention_remote': 'mention_remote',
         'statecomments': 'statecomments',
-        'commented_suspended_program_status': 'commented_suspended_program_status'
+        'commented_suspended_program_status': 'commented_suspended_program_status',
+        'nongovapproval': 'nongovapproval',
+        'standardized_nongovapproval': 'standardized_nongovapproval'        
     }
 
 get_standardized =\
@@ -440,7 +443,7 @@ def instruction_type(from_df):
     inperson_like =\
         regex.compile(
             '''
-            \b(in person){s<=1}            # is called in person, in-person in free text
+            \W(in person){s<=1}            # is called in person, in-person in free text
             |(in person\)){s<=1}
             |(\(in person){s<=1}
             ''',
@@ -500,14 +503,6 @@ def provider_course_status(from_df):
             |\W(not.*approved)
             ''',
             flags=regex.I|regex.VERBOSE)
-    """
-    negate_suspend_like =\
-        regex.compile(
-            '''
-            \b(reinstated.*expir)       # rare but does occur
-            ''',
-            flags=regex.I|regex.VERBOSE)
-    """
 
     suspend_indices =\
         indices_from_regex_search(most_recent_entry, suspend_like)
@@ -515,6 +510,48 @@ def provider_course_status(from_df):
     status_field = canonical_field_name['commented_suspended_program_status']
     to_df[status_field] = False
     to_df.loc[suspend_indices,  status_field] = True
+
+    return to_df
+
+
+def standardized_nongovapproval(from_df):
+    to_df = from_df
+    field = canonical_field_name['nongovapproval']
+    standardized_field = canonical_field_name['standardized_nongovapproval']
+
+    """
+    The number of approved items is medium-ish, about 300 that I see,
+
+    Lesley commented at one point that there were only 27 or so of them,
+    if I recall correctly.
+    """
+
+    to_df[standardized_field] = ''
+
+    approvals = nongov
+
+    has_approvals =\
+        to_df[field].dropna()
+
+    for key, items in nongov.items():
+        instances_of_approvals =  f"(key)"
+        if len(items) > 0:
+            instances_of_approvals +=\
+                '|('+\
+                ')|('.join(list(items))+\
+                ')'
+
+        approval_like =\
+            regex.compile(instances_of_approvals,
+                        flags=regex.I|regex.VERBOSE)
+
+        approval_indices =\
+            indices_from_regex_search(has_approvals, approval_like)
+        
+        # we construct an in place of standardized names in
+        # the return dataframe
+        if len(approval_indices) >0:
+            to_df.loc[approval_indices, standardized_field] += ',' + key
 
     return to_df
 
