@@ -522,8 +522,10 @@ def standardized_nongovapproval(from_df):
     """
     The number of approved items is medium-ish, about 300 that I see,
 
-    Lesley commented at one point that there were only 27 or so of them,
-    if I recall correctly.
+    innovateNJ commented at one point that there were only 27 or so of them,
+    if I recall correctly, so I'm not sure what's what. If that is the case
+    The utils/nongov.py file dictionary can be consolidated itself by 
+    grouping content under a common key w/o having to change this file.
     """
 
     to_df[standardized_field] = ''
