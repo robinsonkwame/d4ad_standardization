@@ -227,10 +227,6 @@ nongov =\
         {
          "Real Estate Commission"
         },
-    "Pennsylvania":\
-        {
-         " PA "
-        },
     "US Environmental Protection Agency":\
         {
          "EPA"
