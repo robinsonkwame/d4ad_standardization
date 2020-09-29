@@ -225,7 +225,7 @@ nongov =\
         },
     "Real Estate Commission":\
         {
-         ""
+         "Real Estate Commission"
         },
     "Pennsylvania":\
         {
@@ -295,7 +295,7 @@ nongov =\
         },
     "Division of Developmental Disabilities":\
         {
-         ""
+         "Division of Developmental Disabilities"
         },
     "North American Board of Certified Energy Practitioners":\
         {
@@ -312,7 +312,8 @@ nongov =\
         },
     "NJ Board of Nursing":\
         {
-         ""
+         "NJ Board of Nursing",
+         "Board of nursing"
         },
     "American Council on Education":\
         {

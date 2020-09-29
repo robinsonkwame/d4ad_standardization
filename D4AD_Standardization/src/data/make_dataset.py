@@ -523,9 +523,10 @@ def standardized_nongovapproval(from_df):
     The number of approved items is medium-ish, about 300 that I see,
 
     innovateNJ commented at one point that there were only 27 or so of them,
-    if I recall correctly, so I'm not sure what's what. If that is the case
-    The utils/nongov.py file dictionary can be consolidated itself by 
-    grouping content under a common key w/o having to change this file.
+    if I recall correctly, so I'm not sure why there are so many more.
+    If the number should be reduced the utils/nongov.py file dictionary
+    can be consolidated itself by grouping content under a common key w/o
+    having to change this file.
     """
 
     to_df[standardized_field] = ''
@@ -536,7 +537,7 @@ def standardized_nongovapproval(from_df):
         to_df[field].dropna()
 
     for key, items in nongov.items():
-        instances_of_approvals =  f"(key)"
+        instances_of_approvals =  f"({key})"
         if len(items) > 0:
             instances_of_approvals +=\
                 '|('+\
@@ -615,6 +616,10 @@ def main(remap_field_names, output_filepath, from_filepath, from_table):
     logger.info('... identifying program statuses (from statecomments)')
     out_df =\
         provider_course_status(from_df=out_df)
+
+    logger.info('... standardizing non-gov approvals (from dict in utils/nongov.py)')
+    out_df =\
+        standardized_nongovapproval(from_df=out_df)
 
     content_is='standardized_etpl'
     logger.info(f"Done. Writing {content_is} to {output_filepath}. Remap fields names is {remap_field_names}")
