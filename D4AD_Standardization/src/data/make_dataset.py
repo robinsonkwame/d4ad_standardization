@@ -539,11 +539,14 @@ def standardized_nongovapproval(from_df):
     for key, items in nongov.items():
         instances_of_approvals =  f"({key})"
         if len(items) > 0:
+            # instances_of_approvals +=\
+            #     '|('+\
+            #     ')|('.join(list(items))+\
+            #     ')'
             instances_of_approvals +=\
                 '|('+\
-                ')|('.join(list(items))+\
+                '\b)|(\b'.join(list(items))+\
                 ')'
-
         approval_like =\
             regex.compile(instances_of_approvals,
                         flags=regex.I|regex.VERBOSE)
