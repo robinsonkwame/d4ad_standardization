@@ -537,16 +537,20 @@ def standardized_nongovapproval(from_df):
         to_df[field].dropna()
 
     for key, items in nongov.items():
-        instances_of_approvals =  f"({key})"
-        if len(items) > 0:
-            # instances_of_approvals +=\
-            #     '|('+\
-            #     ')|('.join(list(items))+\
-            #     ')'
+        instances_of_approvals =  f"({key}\\b)"
+        if len(items) == 1:
+            # we can't use list concat, instead
+            # we directly construct
+            the_item = list(items)[0]
+            instances_of_approvals +=\
+                r'|\b(' + f"{the_item}" + r')\b'
+
+        if len(items) > 1: # else 2 or more
             instances_of_approvals +=\
                 '|('+\
-                '\b)|(\b'.join(list(items))+\
+                '\\b)|('.join(list(items))+\
                 ')'
+
         approval_like =\
             regex.compile(instances_of_approvals,
                         flags=regex.I|regex.VERBOSE)

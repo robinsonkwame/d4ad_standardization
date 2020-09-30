@@ -61,6 +61,7 @@ nongov =\
         },
     "Corporation":\
         {
+            "Microsoft",
             "IBM",
             "Cisco",
             "AT&T",
