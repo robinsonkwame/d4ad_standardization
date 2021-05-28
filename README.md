@@ -88,10 +88,3 @@ The above commands should incremental generate the following .csv files
 ```
 
 There are also `.xls` files in ./data/processed.
-
-## TODOS
-While this work does standardized the columns of the ETPL data there are a few things that need to happen to make more streamlined:
-
-* A single python file created, move all utility and functions to a util.py file that is imported
-* The incremental build up of datasets should include *all* unstandardized column so that proper joins can be made on id fields
-* Need to work hand in hand with Anne and Aisha to assist with how this can be integrated into a SQL based solution; note that my contract was around standardization itself so I initially assumed generating a .csv file was okay as output and providing the general Python scripts was sufficient.
